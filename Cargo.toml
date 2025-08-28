@@ -4,5 +4,23 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+dotenv = "0.15.0"
+log = "0.4.27"
+env_logger = "0.11.8"
+bcrypt = "0.17.1"
+jsonwebtoken = "9.3.1"
 actix-web = "4.11.0"
 actix-files = "0.6.6"
+serde = { version = "1", features = ["derive"] }
+lazy_static = "1.5.0"
+fancy-regex = "0.16.1"
+diesel_migrations = "2.2.0"
+diesel = { version = "2.2.12", features = ["uuid", "chrono"] }
+diesel-async = { version = "0.6.1", features = ["bb8", "postgres"] }
+chrono = { version = "0.4.41", features = ["serde"] }
+bb8 = { version = "0.9.0" }
+tokio = "1.47.1"
+redis = {version = "0.32.5", features = ["tokio-comp", "r2d2"]}
+validator = { version = "0.20.0", features = ["validator_derive"] }
+validator_derive = "0.20.0"
+uuid = { version = "1.18.0", features = ["serde", "v7"] }
