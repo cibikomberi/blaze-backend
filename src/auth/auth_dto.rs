@@ -1,6 +1,6 @@
 use crate::util::deserializer_util::{trim, trim_lower};
 use crate::util::validator_util::validate_password;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use validator_derive::Validate;
 #[derive(Deserialize, Validate)]
 pub struct LoginDto {
@@ -12,4 +12,9 @@ pub struct LoginDto {
     #[validate(length(min = 8, max = 24))]
     #[validate(custom(function = "validate_password"))]
     pub password: String,
+}
+
+#[derive(Serialize)]
+pub struct TokenDto {
+    pub token: String,
 }

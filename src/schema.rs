@@ -68,6 +68,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_session (id) {
+        id -> Uuid,
+        jti -> Uuid,
+        user_id -> Uuid,
+        created_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Uuid,
         #[max_length = 255]
@@ -84,7 +94,6 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(buckets -> organizations (organization_id));
 diesel::joinable!(buckets -> users (created_by));
 diesel::joinable!(files -> folders (folder_id));
 diesel::joinable!(files -> users (created_by));
@@ -92,6 +101,7 @@ diesel::joinable!(folders -> buckets (bucket_id));
 diesel::joinable!(folders -> users (created_by));
 diesel::joinable!(organizations -> users (created_by));
 diesel::joinable!(user_organizations -> organizations (organization_id));
+diesel::joinable!(user_session -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     buckets,
@@ -99,5 +109,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     folders,
     organizations,
     user_organizations,
+    user_session,
     users,
 );

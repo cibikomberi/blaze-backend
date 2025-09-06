@@ -1,45 +1,38 @@
-use std::env;
-use bb8::Pool;
-use diesel_migrations::EmbeddedMigrations;
-use actix_web::http::StatusCode;
+use bb8::{Pool, PooledConnection, RunError};
+use diesel::pg::PgConnection;
+use diesel::Connection;
+use diesel_async::pooled_connection::{AsyncDieselConnectionManager, PoolError};
 use diesel_async::AsyncPgConnection;
-use diesel_async::pooled_connection::AsyncDieselConnectionManager;
-use diesel_migrations::embed_migrations;
-use crate::error::ApiError;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use std::env;
 use tokio::sync::OnceCell;
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 pub type DbPool = Pool<AsyncDieselConnectionManager<AsyncPgConnection>>;
 static POOL: OnceCell<DbPool> = OnceCell::const_new();
 
-pub async fn init() -> Result<(), Box<dyn std::error::Error>> {
-    info!("Initializing DB...");
+pub async fn init() {
+    info!("Running migrations");
+    let connection_url = env::var("DATABASE_URL").unwrap();
+    let mut connection = PgConnection::establish(&connection_url).expect("Error connecting to database");
+    connection.run_pending_migrations(MIGRATIONS).expect("Error running migrations");
+    info!("Migrations complete");
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
-    
-    let pool: DbPool = Pool::builder()
-        .build(manager)
-        .await?;
-    
-    POOL.set(pool).map_err(|_| "Pool already initialized")?;
-    
-    // run_migrations().await?;
-    info!("DB initialized successfully");
-    Ok(())
+    info!("Initializing connection pool");
+    let _ = get_connection_pool().await;
 }
 
-// pub async  fn connection() -> Result<, ApiError> {
-//     POOL.get_or_init().await.get()?
-// }
-
-async fn build_connection_pool() -> Pool<AsyncDieselConnectionManager<AsyncPgConnection>> {
+async fn build_connection_pool() -> DbPool {
     let connection_url = env::var("DATABASE_URL").unwrap();
     let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(connection_url);
     Pool::builder().build(manager).await.unwrap()
 }
 
-pub async fn get_connection_pool() -> &'static Pool<AsyncDieselConnectionManager<AsyncPgConnection>> {
-    static POOL: OnceCell<Pool<AsyncDieselConnectionManager<AsyncPgConnection>>> = OnceCell::const_new();
+pub async fn get_connection_pool() -> &'static DbPool {
     POOL.get_or_init(build_connection_pool).await
+}
+
+pub async fn get_connection() -> Result<PooledConnection<'static, AsyncDieselConnectionManager<AsyncPgConnection>>, RunError<PoolError>> {
+    let pool = get_connection_pool().await;
+    pool.get().await
 }

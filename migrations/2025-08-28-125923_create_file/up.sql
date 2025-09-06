@@ -10,5 +10,5 @@ CREATE table files (
 
 ALTER TABLE files ADD UNIQUE (folder_id, name);
 
-ALTER TABLE files ADD FOREIGN KEY (folder_id) REFERENCES folders(id);
+ALTER TABLE files ADD FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE;
 ALTER TABLE files ADD FOREIGN KEY (created_by) REFERENCES users(id);

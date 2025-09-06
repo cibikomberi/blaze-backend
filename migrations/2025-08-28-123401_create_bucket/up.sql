@@ -8,5 +8,7 @@ CREATE TABLE buckets (
     updated_at TIMESTAMP
 );
 
-ALTER TABLE buckets ADD FOREIGN KEY (organization_id) REFERENCES organizations(id);
+ALTER TABLE buckets ADD UNIQUE (organization_id, name);
+
+ALTER TABLE buckets ADD FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
 ALTER TABLE buckets ADD FOREIGN KEY (created_by) REFERENCES users(id);

@@ -10,12 +10,12 @@ CREATE TABLE organizations (
 
 ALTER TABLE organizations ADD FOREIGN KEY (created_by) REFERENCES users(id);
 
-CREATE TYPE organization_role as ENUM ('OWNER', 'ADMIN', 'EDITOR', 'COMMENTER', 'VIEWER');
+CREATE TYPE organization_role as ENUM ('owner', 'admin', 'editor', 'commenter', 'viewer');
 CREATE TABLE user_organizations (
     user_id UUID NOT NULL,
     organization_id UUID NOT NULL,
 
-    role organization_role NOT NULL DEFAULT 'VIEWER',
+    role organization_role NOT NULL DEFAULT 'viewer',
     added_by UUID,
     added_at TIMESTAMP NOT NULL DEFAULT now()
 );
