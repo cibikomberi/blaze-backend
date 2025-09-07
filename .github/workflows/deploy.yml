@@ -36,4 +36,4 @@ jobs:
           rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./.env ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
       - name: Load image on server
-        run: ssh ${{ secrets.SERVER }} "sudo docker load -i ${{ secrets.SERVER_PATH }}/blaze.tar && sudo docker compose up -d -f ${{ secrets.SERVER_PATH }}/docker-compose.yaml"
+        run: ssh ${{ secrets.SERVER }} "sudo docker load -i ${{ secrets.SERVER_PATH }}/blaze.tar && sudo docker compose -f ${{ secrets.SERVER_PATH }}/docker-compose.yaml up -d"
