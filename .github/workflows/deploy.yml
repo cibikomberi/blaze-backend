@@ -32,7 +32,10 @@ jobs:
 
       - name: Copy .env file to server
         run: |
-          echo ${{ secrets.ENV_FILE }} > .env &&
+          cat << 'EOF' > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
+          
           rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./.env ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
       - name: Load image on server
