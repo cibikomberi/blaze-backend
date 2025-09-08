@@ -171,7 +171,7 @@ pub async fn update_user(user_id: Uuid, organization_id: Uuid, role: Organizatio
         }
     }
     let (user, user_org) = users::table.find(user_id)
-        .left_join(user_organizations::table.on(user_organizations::user_id.eq(users::id)))
+        .left_join(user_organizations::table.on(user_organizations::user_id.eq(users::id).and(user_organizations::organization_id.eq(organization_id))))
         .select((User::as_select(), Option::<UserOrganization>::as_select()))
         .get_result::<(User, Option<UserOrganization>)>(&mut conn)
         .await?;
@@ -204,7 +204,7 @@ pub async fn delete_user(user_id: Uuid, organization_id: Uuid, user: &User) -> R
         }
     }
     let (_, user_org) = users::table.find(user_id)
-        .left_join(user_organizations::table.on(user_organizations::user_id.eq(users::id)))
+        .left_join(user_organizations::table.on(user_organizations::user_id.eq(users::id).and(user_organizations::organization_id.eq(organization_id))))
         .select((User::as_select(), Option::<UserOrganization>::as_select()))
         .get_result::<(User, Option<UserOrganization>)>(&mut conn)
         .await?;
