@@ -24,16 +24,19 @@ jobs:
 
       - name: Copy to server
         run: |
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./blaze.tar ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/blaze.tar
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./blaze.tar ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
       - name: Copy docker-compose file to server
         run: |
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./docker-compose.yaml ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/docker-compose.yaml
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./docker-compose.yaml ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
       - name: Copy .env file to server
         run: |
-          echo ${{ secrets.ENV_FILE }} > .env &&
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./.env ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/.env
+          cat << 'EOF' > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
+          
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./.env ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
       - name: Load image on server
-        run: ssh ${{ secrets.SERVER }} "sudo docker load -i ${{ secrets.SERVER_PATH }}/blaze.tar && sudo docker compose up -d"
+        run: ssh ${{ secrets.SERVER }} "sudo docker load -i ${{ secrets.SERVER_PATH }}/blaze.tar && sudo docker compose -f ${{ secrets.SERVER_PATH }}/docker-compose.yaml up -d"

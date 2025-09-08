@@ -16,7 +16,7 @@ async fn login(dto: Json<LoginDto>) -> HttpResponse {
     let cookie = Cookie::build("refresh_token", refresh_toke)
         .path("/api/auth/refresh_token")
         .http_only(true)
-        .secure(true)
+        .secure(false)
         .same_site(SameSite::Strict)
         .finish();
     HttpResponse::Ok().cookie(cookie)
