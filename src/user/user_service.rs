@@ -1,15 +1,14 @@
-use actix_web::http::StatusCode;
-use diesel::associations::HasTable;
-use diesel::pg::Pg;
-use diesel::{debug_query, BoolExpressionMethods, QueryDsl};
 use crate::config::db_config;
 use crate::error::ApiResponse;
 use crate::schema::users::dsl::users;
+use crate::user::user_model::User;
+use actix_web::http::StatusCode;
+use diesel::pg::Pg;
+use diesel::ExpressionMethods;
+use diesel::PgTextExpressionMethods;
+use diesel::{debug_query, BoolExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
-use diesel::ExpressionMethods;
-use crate::user::user_model::User;
-use diesel::PgTextExpressionMethods;
 
 pub async fn register_user(name: String, email: String, username: String, raw_password: String) -> Result<User, ApiResponse> {
     let password = bcrypt::hash(&raw_password, 10).unwrap();
@@ -22,15 +21,6 @@ pub async fn register_user(name: String, email: String, username: String, raw_pa
         .values(User::new(name, username, email, password))
         .get_result::<User>(&mut conn).await
         .map_err(|_| ApiResponse::new(StatusCode::CONFLICT, "frokpskf".to_string()))?)
-}
-
-pub async fn get() -> Result<Vec<User>, ApiResponse> {
-    let mut conn = db_config::get_connection().await?;
-    let users_list = users::table()
-        .get_results::<User>(&mut conn)
-        .await?;
-
-    Ok(users_list) 
 }
 
 pub async fn find_by_id(user_id: Uuid) -> Option<User> {

@@ -5,14 +5,14 @@ use crate::folder::folder_dto::Entry;
 use crate::folder::folder_model::Folder;
 use crate::organization::organization_model::{Organization, OrganizationRole, UserOrganization};
 use crate::organization::organization_service;
-use crate::schema::{buckets, files, organizations};
 use crate::schema::folders;
 use crate::schema::user_organizations;
+use crate::schema::{buckets, organizations};
 use crate::user::user_model::User;
 use actix_web::http::StatusCode;
 use diesel::sql_types::{BigInt, Nullable, Text};
-use diesel::sql_types::{Timestamp, Uuid as SqlUuid};
-use diesel::{sql_query, ExpressionMethods, JoinOnDsl, PgTextExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::sql_types::{Uuid as SqlUuid};
+use diesel::{sql_query, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lazy_static::lazy_static;
 use std::option::Option;
@@ -21,7 +21,7 @@ use tokio::fs;
 use uuid::Uuid;
 
 lazy_static! {
-    static ref EDITABLE_ROLES: [OrganizationRole; 3] = [OrganizationRole::OWNER, OrganizationRole::ADMIN, OrganizationRole::EDITOR];
+    pub static ref EDITABLE_ROLES: [OrganizationRole; 3] = [OrganizationRole::OWNER, OrganizationRole::ADMIN, OrganizationRole::EDITOR];
 }
 pub async fn create(name: String, bucket_id: Uuid, parent_id: Uuid, user: &User) -> Result<Folder, ApiResponse> {
     let mut conn = db_config::get_connection().await?;

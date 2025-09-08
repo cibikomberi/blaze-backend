@@ -1,12 +1,11 @@
+use crate::bucket::bucket_model::Bucket;
+use crate::schema::folders;
+use crate::user::user_model::User;
 use chrono::{NaiveDateTime, Utc};
-use diesel::deserialize::FromSqlRow;
 use diesel::prelude::QueryableByName;
 use diesel::{Associations, Insertable, Queryable, Selectable};
 use serde::Serialize;
 use uuid::Uuid;
-use crate::schema::folders;
-use crate::user::user_model::User;
-use crate::bucket::bucket_model::Bucket;
 // use diesel::alias;
 
 // alias!(folders as parent_folders);

@@ -3,7 +3,6 @@ use crate::config::db_config;
 use crate::error::ApiResponse;
 use crate::file::file_model::File;
 use crate::folder::folder_model::Folder;
-use crate::folder::folder_service;
 use crate::folder::folder_service::folder_path;
 use crate::organization::organization_model::{Organization, OrganizationRole, UserOrganization};
 use crate::organization::organization_service;
@@ -60,7 +59,7 @@ pub async fn upload(body: Bytes, folder_id: Uuid, file_name:String, user: &User)
 
 pub async fn search_file(folder_id: Uuid, keyword: Option<String>, limit: i64, cursor: Option<Uuid>, user: &User) -> Result<Vec<File>, ApiResponse> {
     let mut conn = db_config::get_connection().await?;
-    let (folder, user_organization) = folders::dsl::folders.find(folder_id)
+    let (_folder, user_organization) = folders::dsl::folders.find(folder_id)
         .left_join(buckets::table)
         .left_join(user_organizations::table.on(user_organizations::organization_id.eq(buckets::organization_id)))
         .filter(user_organizations::user_id.eq(user.id))
@@ -91,7 +90,7 @@ pub async fn search_file(folder_id: Uuid, keyword: Option<String>, limit: i64, c
 pub async fn get_file(file_id: Uuid, user_id: Uuid) -> Result<impl Responder, ApiResponse> {
     let mut conn = db_config::get_connection().await?;
     error!("{}", file_id);
-    let (file, folder, bucket, organization, user_org) = files::table.find(file_id)
+    let (file, _folder, bucket, organization, user_org) = files::table.find(file_id)
         .left_join(folders::table.on(folders::id.eq(files::folder_id)))
         .left_join(buckets::table.on(buckets::id.eq(folders::bucket_id)))
         .left_join(user_organizations::table.on(user_organizations::organization_id.eq(buckets::organization_id)))

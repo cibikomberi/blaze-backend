@@ -29,7 +29,7 @@ pub struct UserOrganization {
     added_at: NaiveDateTime,
 }
 
-#[derive(diesel_derive_enum::DbEnum, PartialEq, Deserialize, Debug)]
+#[derive(diesel_derive_enum::DbEnum, PartialEq, Deserialize, Serialize, Debug)]
 #[db_enum(existing_type_path = "crate::schema::sql_types::OrganizationRole")]
 pub enum OrganizationRole {
     OWNER,
@@ -52,12 +52,12 @@ impl Organization {
 }
 
 impl UserOrganization {
-    pub fn new(organization_id: Uuid, user_id: Uuid, role: OrganizationRole) -> UserOrganization {
+    pub fn new(organization_id: Uuid, user_id: Uuid, role: OrganizationRole, added_by: Option<Uuid>) -> UserOrganization {
         UserOrganization {
             user_id,
             organization_id,
             role,
-            added_by: None,
+            added_by,
             added_at: chrono::Utc::now().naive_utc(),
 }}
     }

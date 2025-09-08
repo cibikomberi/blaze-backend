@@ -1,8 +1,8 @@
-use actix_web::{get, post, web::{Json, Query, ServiceConfig}, HttpMessage, HttpRequest, Responder};
+use actix_web::{delete, get, post, put, web::{Json, Query, ServiceConfig}, HttpMessage, HttpRequest, Responder};
 use actix_web::web::Path;
 use uuid::Uuid;
 use crate::{error::ApiResponse, organization::{organization_dto::{CreateOrganizationDTO, SearchDto}, organization_service}, user::user_model::User};
-use crate::organization::organization_dto::{AddUserDTO, OrganizationIdDto};
+use crate::organization::organization_dto::{AddUserDTO, DeleteUserDTO, OrganizationIdDto, OrganizationUserRoleDto};
 use crate::organization::organization_model::Organization;
 
 #[post[""]]
@@ -31,7 +31,7 @@ pub async fn get_organization(dto: Path<OrganizationIdDto>, request: HttpRequest
 }
 
 #[get("users/{organization_id}")]
-async fn list_users_in_organization(dto: Query<SearchDto>, organization_id: Path<Uuid>, request: HttpRequest) -> Result<Json<Vec<User>>, ApiResponse> {
+async fn list_users_in_organization(dto: Query<SearchDto>, organization_id: Path<Uuid>, request: HttpRequest) -> Result<Json<Vec<OrganizationUserRoleDto>>, ApiResponse> {
     let SearchDto { keyword, limit, cursor } = dto.into_inner();
     let organization_id = organization_id.into_inner();
     let extensions = request.extensions();
@@ -49,10 +49,30 @@ async fn add_user(dto: Json<AddUserDTO>, request: HttpRequest) -> Result<Json<Us
     Ok(Json(added_user))
 }
 
+#[put("user")]
+async fn update_user(dto: Json<AddUserDTO>, request: HttpRequest) -> Result<Json<User>, ApiResponse> {
+    let AddUserDTO { user_id, organization_id, role } = dto.into_inner();
+    let extensions = request.extensions();
+    let user = extensions.get::<User>().unwrap();
+    let added_user = organization_service::update_user(user_id, organization_id, role, user).await?;
+    Ok(Json(added_user))
+}
+
+#[delete("user")]
+async fn delete_user(dto: Json<DeleteUserDTO>, request: HttpRequest) -> Result<(), ApiResponse> {
+    let DeleteUserDTO { user_id, organization_id } = dto.into_inner();
+    let extensions = request.extensions();
+    let user = extensions.get::<User>().unwrap();
+    organization_service::delete_user(user_id, organization_id, user).await?;
+    Ok(())
+}
+
 pub fn organization_routes(cfg: &mut ServiceConfig) {
     cfg.service(create);
     cfg.service(get_organization);
     cfg.service(list_organizations);
     cfg.service(list_users_in_organization);
     cfg.service(add_user);
+    cfg.service(update_user);
+    cfg.service(delete_user);
 }
