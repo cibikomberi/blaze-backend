@@ -12,19 +12,19 @@ mod file;
 mod config;
 
 use crate::auth::auth_handler::auth_routes;
+use crate::auth::auth_middleware::jwt_auth;
 use crate::bucket::bucket_handler::bucket_routes;
+use crate::file::file_handler::{file_routes, serve_files};
+use crate::folder::folder_handler::folder_routes;
+use crate::organization::organization_handler::organization_routes;
 use crate::user::user_handler::user_routes;
 use actix_files as fs;
 use actix_web::dev::ServiceResponse;
 use actix_web::http::{header, StatusCode};
 use actix_web::middleware::{from_fn, ErrorHandlerResponse, ErrorHandlers, Logger};
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use crate::organization::organization_handler::organization_routes;
-use crate::auth::auth_middleware::jwt_auth;
-use env_logger::{init_from_env, Env};
 use config::db_config;
-use crate::file::file_handler::file_routes;
-use crate::folder::folder_handler::folder_routes;
+use env_logger::{init_from_env, Env};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -35,6 +35,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())
+            .service(web::scope("/f").service(serve_files))
             .service(web::scope("/api")
                 .service(web::scope("/user").configure(user_routes))
                 .service(web::scope("/auth").configure(auth_routes))

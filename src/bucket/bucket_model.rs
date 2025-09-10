@@ -1,6 +1,7 @@
 use chrono::{NaiveDateTime, Utc};
-use diesel::{Associations, Identifiable, Insertable, Queryable, Selectable};
-use serde::Serialize;
+use diesel::{AsChangeset, Associations, Identifiable, Insertable, Queryable, Selectable};
+use diesel_derive_enum::DbEnum;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::schema::buckets;
 use crate::user::user_model::User;
@@ -17,6 +18,21 @@ pub struct Bucket {
     pub created_by: Uuid,
     pub created_at: NaiveDateTime,
     pub updated_at: Option<NaiveDateTime>,
+    pub visibility: BucketVisibility
+}
+
+#[derive(DbEnum, Deserialize, Serialize, PartialEq, Debug)]
+#[db_enum(existing_type_path = "crate::schema::sql_types::BucketVisibility")]
+pub enum BucketVisibility {
+    PUBLIC,
+    PRIVATE,
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = buckets)]
+pub struct BucketChangeset {
+    pub name: Option<String>,
+    pub visibility: Option<BucketVisibility>
 }
 
 impl Bucket {
@@ -27,7 +43,8 @@ impl Bucket {
             organization_id,
             created_by: user_id,
             created_at: Utc::now().naive_utc(),
-            updated_at: None 
+            updated_at: None,
+            visibility: BucketVisibility::PRIVATE,
         }
     }
 }

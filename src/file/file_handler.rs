@@ -1,11 +1,12 @@
 use crate::error::ApiResponse;
-use crate::file::file_dto::{FileIdDto, FileNameDTO, SearchFileDto};
+use crate::file::file_dto::{FileDto, FileIdDto, FileNameDTO, SearchFileDto};
 use crate::file::file_model::File;
 use crate::file::file_service;
 use crate::user::user_model::User;
 use actix_web::web::{Json, Path, PayloadConfig, Query, ServiceConfig};
 use actix_web::{delete, get, put, web, HttpMessage, HttpRequest, Responder};
 use uuid::Uuid;
+use crate::file;
 
 #[put("{folder_id}")]
 async fn upload(body: web::Bytes, folder_id: Path<Uuid>, file_name: Query<FileNameDTO>, request: HttpRequest) -> Result<(), ApiResponse> {
@@ -42,6 +43,13 @@ async fn delete_file(dto: Path<FileIdDto>, request: HttpRequest)-> Result<(), Ap
     let FileIdDto { file_id } = dto.into_inner();
     
     file_service::delete_file(file_id, user.id).await
+}
+
+#[get("{organization_name}/{bucket_name}/{file_path:.*}")]
+pub async fn serve_files(dto: Path<FileDto>) -> Result<actix_files::NamedFile, ApiResponse> {
+    // debug!("{:?}", dto.into_inner());
+    let FileDto { organization_name, bucket_name, file_path } = dto.into_inner();
+    file_service::serve_file(organization_name, bucket_name, file_path).await
 }
 
 pub fn file_routes(cfg: &mut ServiceConfig) {

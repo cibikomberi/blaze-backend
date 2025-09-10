@@ -1,5 +1,5 @@
 use actix_web::http::StatusCode;
-use diesel::{ExpressionMethods, JoinOnDsl, PgTextExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, PgTextExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use tokio::fs;
 use uuid::Uuid;
@@ -8,6 +8,8 @@ use crate::folder::folder_model::Folder;
 use crate::organization::organization_model::{Organization, UserOrganization};
 use crate::schema::{folders, organizations, user_organizations};
 use crate::{bucket::bucket_model::Bucket, config::db_config, error::ApiResponse, organization::organization_service, schema::buckets, user::user_model::User};
+use crate::bucket::bucket_model::{BucketChangeset, BucketVisibility};
+use crate::folder::folder_service::EDITABLE_ROLES;
 
 pub async fn create(name: String, organization_id: Uuid, user: &User) -> Result<Bucket, ApiResponse> {
     let mut conn = db_config::get_connection().await?;
@@ -51,6 +53,31 @@ pub async fn list(organization_id: Uuid, keyword: Option<String>, limit: i64, cu
         .await?;
 
     Ok(buckets)
+}
+
+pub async fn update_bucket(bucket_id: Uuid, name: Option<String>, visibility: Option<BucketVisibility>, user: &User) -> Result<Bucket, ApiResponse> {
+    let mut conn = db_config::get_connection().await?;
+    let (bucket, user_organization) = buckets::table.find(bucket_id)
+        .left_join(user_organizations::table.on(buckets::organization_id.eq(user_organizations::organization_id).and(user_organizations::user_id.eq(user.id))))
+        .select((Bucket::as_select(), Option::<UserOrganization>::as_select()))
+        .first::<(Bucket, Option<UserOrganization>)>(&mut conn)
+        .await?;
+    if user_organization.is_none() {
+        return Err(ApiResponse::new(StatusCode::FORBIDDEN, "User doesn't have access to this organization".to_string()));
+    }
+    let user_organization = user_organization.unwrap();
+    if !EDITABLE_ROLES.contains(&user_organization.role) {
+        return Err(ApiResponse::new(StatusCode::FORBIDDEN, "You do not have permission to update a bucket".to_string()));
+    }
+    let changeset = BucketChangeset { name, visibility };
+    let bucket = diesel::update(buckets::table)
+        .set(changeset)
+        .filter(buckets::id.eq(bucket.id))
+        .get_result::<Bucket>(&mut conn)
+        .await?;
+
+    Ok(bucket)
+
 }
 
 pub async fn delete_bucket(bucket_id: Uuid, user: &User) -> Result<Bucket, ApiResponse> {

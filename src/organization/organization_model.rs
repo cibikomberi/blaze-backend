@@ -1,5 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::{Associations, Insertable, Queryable, Selectable};
+use rand::distr::Alphanumeric;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::schema::*;
@@ -39,6 +41,16 @@ pub enum OrganizationRole {
     VIEWER
 }
 
+#[derive(Insertable, Queryable, Serialize, Debug)]
+#[diesel(table_name = organization_secrets)]
+pub struct OrganizationSecret {
+    pub id: String,
+    pub secret: String,
+    pub organization_id: Uuid,
+    pub created_by: Uuid,
+    pub created_at: NaiveDateTime,
+}
+
 impl Organization {
     pub fn new(name: String, created_by: Uuid) -> Organization {
         Organization {
@@ -61,3 +73,26 @@ impl UserOrganization {
             added_at: chrono::Utc::now().naive_utc(),
 }}
     }
+
+impl OrganizationSecret {
+    pub fn new(organization_id: Uuid, created_by: Uuid) -> Self {
+        let id: String = rand::rng()
+            .sample_iter(&Alphanumeric)
+            .take(16)
+            .map(char::from)
+            .collect();
+        let secret: String = rand::rng()
+            .sample_iter(&Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
+
+        OrganizationSecret {
+            id,
+            secret,
+            organization_id,
+            created_by,
+            created_at: chrono::Utc::now().naive_utc(),
+        }
+    }
+}

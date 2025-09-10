@@ -1,12 +1,22 @@
 use serde::Deserialize;
 use uuid::Uuid;
 use validator_derive::Validate;
+use crate::bucket::bucket_model::BucketVisibility;
 
 #[derive(Deserialize, Validate)]
 pub struct CreateBucketDto {
     #[validate(length(min = 4, max = 255))]
     pub name: String,
     pub organization_id: Uuid
+}
+
+#[derive(Deserialize, Validate)]
+pub struct UpdateBucketDto {
+    pub bucket_id: Uuid,
+
+    #[validate(length(min = 4, max = 255))]
+    pub name: Option<String>,
+    pub visibility: Option<BucketVisibility>
 }
 
 #[derive(Deserialize)]

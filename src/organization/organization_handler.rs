@@ -2,8 +2,8 @@ use actix_web::{delete, get, post, put, web::{Json, Query, ServiceConfig}, HttpM
 use actix_web::web::Path;
 use uuid::Uuid;
 use crate::{error::ApiResponse, organization::{organization_dto::{CreateOrganizationDTO, SearchDto}, organization_service}, user::user_model::User};
-use crate::organization::organization_dto::{AddUserDTO, DeleteUserDTO, OrganizationIdDto, OrganizationUserRoleDto};
-use crate::organization::organization_model::Organization;
+use crate::organization::organization_dto::{AddUserDTO, DeleteSecretDto, DeleteUserDTO, OrganizationIdDto, OrganizationUserRoleDto, PaginatedSecretSearchDto};
+use crate::organization::organization_model::{Organization, OrganizationSecret};
 
 #[post[""]]
 pub async fn create(dto: Json<CreateOrganizationDTO>, request: HttpRequest) -> Result<impl Responder, ApiResponse> {
@@ -67,12 +67,42 @@ async fn delete_user(dto: Json<DeleteUserDTO>, request: HttpRequest) -> Result<(
     Ok(())
 }
 
+#[get("secret")]
+async fn get_organization_secret(dto: Query<PaginatedSecretSearchDto>, request: HttpRequest) -> Result<Json<Vec<OrganizationSecret>>, ApiResponse> {
+    let PaginatedSecretSearchDto { limit, page, organization_id } = dto.into_inner();
+    let extensions = request.extensions();
+    let user = extensions.get::<User>().unwrap();
+    let secrets = organization_service::get_organization_secret(organization_id, user, limit, page).await?;
+    Ok(Json(secrets))
+}
+
+#[post("secret")]
+async fn create_organization_secret(dto: Json<OrganizationIdDto>, request: HttpRequest) -> Result<Json<OrganizationSecret>, ApiResponse> {
+    let OrganizationIdDto { organization_id } = dto.into_inner();
+    let extensions = request.extensions();
+    let user = extensions.get::<User>().unwrap();
+    let secret = organization_service::create_organization_secret(organization_id, user).await?;
+    Ok(Json(secret))
+}
+
+#[delete("secret")]
+async fn delete_organization_secret(dto: Json<DeleteSecretDto>, request: HttpRequest) -> Result<(), ApiResponse> {
+    let DeleteSecretDto { id, organization_id } = dto.into_inner();
+    let extensions = request.extensions();
+    let user = extensions.get::<User>().unwrap();
+    organization_service::delete_organization_secret(id, organization_id, user).await?;
+    Ok(())
+}
+
 pub fn organization_routes(cfg: &mut ServiceConfig) {
     cfg.service(create);
+    cfg.service(get_organization_secret);
     cfg.service(get_organization);
     cfg.service(list_organizations);
     cfg.service(list_users_in_organization);
     cfg.service(add_user);
     cfg.service(update_user);
     cfg.service(delete_user);
+    cfg.service(create_organization_secret);
+    cfg.service(delete_organization_secret);
 }

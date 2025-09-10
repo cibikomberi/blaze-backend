@@ -52,3 +52,16 @@ pub struct OrganizationUserRoleDto {
     pub added_at: NaiveDateTime,
     pub added_by: Option<UserDto>
 }
+
+#[derive(Deserialize)]
+pub struct PaginatedSecretSearchDto {
+    pub organization_id: Uuid,
+    pub limit: Option<i64>,
+    pub page: Option<i64>
+}
+
+#[derive(Deserialize)]
+pub struct DeleteSecretDto {
+    pub organization_id: Uuid,
+    pub id: String
+}

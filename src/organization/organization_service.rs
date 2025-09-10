@@ -9,7 +9,8 @@ use crate::{
 };
 use crate::folder::folder_service::EDITABLE_ROLES;
 use crate::organization::organization_dto::{OrganizationUserRoleDto, UserDto};
-use crate::schema::users;
+use crate::organization::organization_model::OrganizationSecret;
+use crate::schema::{organization_secrets, users};
 
 pub async fn create(name: String, user: &User) -> Result<Organization, ApiResponse> {
     let org = Organization::new(name, user.id);
@@ -195,9 +196,6 @@ pub async fn update_user(user_id: Uuid, organization_id: Uuid, role: Organizatio
 pub async fn delete_user(user_id: Uuid, organization_id: Uuid, user: &User) -> Result<(), ApiResponse> {
     let mut conn = db_config::get_connection().await?;
     let (_, user_organization) = validate_access(organization_id ,user.id, &mut conn).await?;
-    if user_organization.is_none() {
-        return Err(ApiResponse::new(StatusCode::FORBIDDEN, "You do not have access to this organization".to_string()));
-    }
     if let Some(user_organization) = user_organization {
         if !EDITABLE_ROLES.contains(&user_organization.role) {
             return Err(ApiResponse::new(StatusCode::FORBIDDEN, "You do not have access to this organization".to_string()));
@@ -223,9 +221,61 @@ pub async fn delete_user(user_id: Uuid, organization_id: Uuid, user: &User) -> R
     Ok(())
 }
 
+pub async fn create_organization_secret(organization_id: Uuid, user: &User) -> Result<OrganizationSecret, ApiResponse> {
+    let mut conn = db_config::get_connection().await?;
+    let (_, user_organization) = validate_access(organization_id ,user.id, &mut conn).await?;
+    if let Some(user_organization) = user_organization {
+        if !EDITABLE_ROLES.contains(&user_organization.role) {
+            return Err(ApiResponse::new(StatusCode::FORBIDDEN, "You do not have access to create a secret".to_string()));
+        }
+    }
+    let organization_secret = OrganizationSecret::new(organization_id, user.id);
+    let organization_secret = diesel::insert_into(organization_secrets::table)
+        .values(organization_secret)
+        .get_result::<OrganizationSecret>(&mut conn)
+        .await?;
+
+    Ok(organization_secret)
+}
+
+pub async fn get_organization_secret(organization_id: Uuid, user: &User, limit: Option<i64>, page: Option<i64>) -> Result<Vec<OrganizationSecret>, ApiResponse> {
+    let mut conn = db_config::get_connection().await?;
+    let (_, _) = validate_access(organization_id ,user.id, &mut conn).await?;
+
+    let mut query = organization_secrets::table.filter(organization_secrets::organization_id.eq(organization_id))
+        .order(organization_secrets::created_at.desc())
+        .into_boxed();
+    if let Some(limit) = limit {
+        query = query.limit(limit);
+        if let Some(page) = page {
+            query = query.offset((page - 1) * limit);
+        }
+    }
+    let secrets = query.load::<OrganizationSecret>(&mut conn).await?;
+
+    Ok(secrets)
+
+}
+pub async fn delete_organization_secret(id: String, organization_id: Uuid, user: &User) -> Result<(), ApiResponse> {
+    let mut conn = db_config::get_connection().await?;
+    let (_, user_organization) = validate_access(organization_id ,user.id, &mut conn).await?;
+    if let Some(user_organization) = user_organization {
+        if !EDITABLE_ROLES.contains(&user_organization.role) {
+            return Err(ApiResponse::new(StatusCode::FORBIDDEN, "You do not have access to create a secret".to_string()));
+        }
+    }
+    let _ = diesel::delete(organization_secrets::table)
+        .filter(organization_secrets::id.eq(id))
+        .filter(organization_secrets::organization_id.eq(organization_id))
+        .execute(&mut conn)
+        .await?;
+
+    Ok(())
+}
+
 pub async fn validate_access(organization_id: Uuid, user_id: Uuid, conn: &mut AsyncPgConnection) -> Result<(Organization, Option<UserOrganization>), ApiResponse> {
     // let mut conn = db_config::get_connection().await?;
-    let org = organizations::table
+    let (org, user_organization) = organizations::table
         .filter(organizations::id.eq(organization_id))
         .left_join(user_organizations::table)
         .filter(user_organizations::user_id.eq(user_id))
@@ -233,5 +283,8 @@ pub async fn validate_access(organization_id: Uuid, user_id: Uuid, conn: &mut As
         .first::<(Organization, Option<UserOrganization>)>(conn)
         .await?;
 
-    Ok(org)
+    if user_organization.is_none() {
+        return Err(ApiResponse::new(StatusCode::FORBIDDEN, "User is not a part of this organization".to_string()));
+    }
+    Ok((org, user_organization))
 }

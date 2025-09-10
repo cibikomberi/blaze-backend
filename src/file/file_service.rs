@@ -1,4 +1,4 @@
-use crate::bucket::bucket_model::Bucket;
+use crate::bucket::bucket_model::{Bucket, BucketVisibility};
 use crate::config::db_config;
 use crate::error::ApiResponse;
 use crate::file::file_model::File;
@@ -17,6 +17,7 @@ use diesel::{ExpressionMethods, PgTextExpressionMethods, SelectableHelper};
 use diesel::{JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lazy_static::lazy_static;
+use std::cmp::PartialEq;
 use std::path::Path;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
@@ -140,5 +141,27 @@ pub async fn delete_file(file_id: Uuid, user_id: Uuid) -> Result<(), ApiResponse
     let path = Path::new(&path);
     tokio::fs::remove_file(path).await
         .map_err(|_| ApiResponse::new(StatusCode::INTERNAL_SERVER_ERROR, "Cannot remove file".to_string()))
+}
 
+pub async fn serve_file(organization_name: String, bucket_name: String, file_path: String) -> Result<actix_files::NamedFile, ApiResponse> {
+    let mut conn = db_config::get_connection().await?;
+    let (org, bucket) = organizations::table
+        .left_join(buckets::table.on(buckets::organization_id.eq(organizations::id)))
+        .filter(organizations::name.eq(&organization_name))
+        .filter(buckets::name.eq(&bucket_name))
+        .select((Option::<Organization>::as_select(), Option::<Bucket>::as_select()))
+        .first::<(Option<Organization>, Option<Bucket>)>(&mut conn)
+        .await?;
+
+    if org.is_none() || bucket.is_none() {
+        return Err(ApiResponse::new(StatusCode::FORBIDDEN, "No access to this file".to_string()))
+    }
+    if let Some(bucket) = bucket {
+        if bucket.visibility == BucketVisibility::PRIVATE {
+            return Err(ApiResponse::new(StatusCode::FORBIDDEN, "Cannot access the file".to_string()));
+        }
+    }
+    let path = "files/".to_string() + &organization_name + "/" + &bucket_name + "/" + &file_path;
+    actix_files::NamedFile::open_async(path).await
+        .map_err(|_| ApiResponse::new(StatusCode::NOT_FOUND, "File not found".to_string()))
 }

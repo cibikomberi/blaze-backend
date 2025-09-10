@@ -18,3 +18,10 @@ pub struct FileNameDTO {
 pub struct FileIdDto {
     pub file_id: Uuid,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct FileDto {
+    pub organization_name: String,
+    pub bucket_name: String,
+    pub file_path: String,
+}
