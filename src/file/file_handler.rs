@@ -1,12 +1,11 @@
 use crate::error::ApiResponse;
-use crate::file::file_dto::{FileDto, FileIdDto, FileNameDTO, SearchFileDto};
+use crate::file::file_dto::{FileDto, FileIdDto, FileNameDTO, FileQueryDto, SearchFileDto};
 use crate::file::file_model::File;
 use crate::file::file_service;
 use crate::user::user_model::User;
-use actix_web::web::{Json, Path, PayloadConfig, Query, ServiceConfig};
+use actix_web::web::{Bytes, Json, Path, PayloadConfig, Query, ServiceConfig};
 use actix_web::{delete, get, put, web, HttpMessage, HttpRequest, Responder};
 use uuid::Uuid;
-use crate::file;
 
 #[put("{folder_id}")]
 async fn upload(body: web::Bytes, folder_id: Path<Uuid>, file_name: Query<FileNameDTO>, request: HttpRequest) -> Result<(), ApiResponse> {
@@ -46,10 +45,15 @@ async fn delete_file(dto: Path<FileIdDto>, request: HttpRequest)-> Result<(), Ap
 }
 
 #[get("{organization_name}/{bucket_name}/{file_path:.*}")]
-pub async fn serve_files(dto: Path<FileDto>) -> Result<actix_files::NamedFile, ApiResponse> {
-    // debug!("{:?}", dto.into_inner());
+pub async fn serve_file(dto: Path<FileDto>, query: Query<FileQueryDto>) -> Result<actix_files::NamedFile, ApiResponse> {
     let FileDto { organization_name, bucket_name, file_path } = dto.into_inner();
-    file_service::serve_file(organization_name, bucket_name, file_path).await
+    file_service::serve_file(organization_name, bucket_name, file_path, query.into_inner()).await
+}
+
+#[put("{organization_name}/{bucket_name}/{file_path:.*}")]
+pub async fn save_file(bytes: Bytes, dto: Path<FileDto>, query: Query<FileQueryDto>) -> Result<(), ApiResponse> {
+    let FileDto { organization_name, bucket_name, file_path } = dto.into_inner();
+    file_service::save_file(bytes, organization_name, bucket_name, file_path, query.into_inner()).await
 }
 
 pub fn file_routes(cfg: &mut ServiceConfig) {
@@ -59,3 +63,7 @@ pub fn file_routes(cfg: &mut ServiceConfig) {
     cfg.service(get_file);
 }
 
+pub fn fs_routes(cfg: &mut ServiceConfig) {
+    cfg.service(serve_file);
+    cfg.app_data(PayloadConfig::new(1 * 1024 * 1024 * 1024)).service(save_file);
+}

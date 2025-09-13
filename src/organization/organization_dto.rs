@@ -65,3 +65,9 @@ pub struct DeleteSecretDto {
     pub organization_id: Uuid,
     pub id: String
 }
+
+#[derive(Deserialize)]
+pub struct SignatureDto {
+    pub id: String,
+    pub signature: String,
+}

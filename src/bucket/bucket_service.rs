@@ -13,7 +13,7 @@ use crate::folder::folder_service::EDITABLE_ROLES;
 
 pub async fn create(name: String, organization_id: Uuid, user: &User) -> Result<Bucket, ApiResponse> {
     let mut conn = db_config::get_connection().await?;
-    let _ = organization_service::validate_access(organization_id, user.id, &mut conn).await
+    let (organization, _) = organization_service::validate_access(organization_id, user.id, &mut conn).await
         .map_err(|_| ApiResponse::new(StatusCode::FORBIDDEN, "You do not have access to this organization".to_string()))?;
 
     let bucket = conn.transaction::<Bucket, ApiResponse, _>(|mut conn| {
@@ -29,6 +29,8 @@ pub async fn create(name: String, organization_id: Uuid, user: &User) -> Result<
         Ok(bucket)
         })
     }).await?;
+
+    let _ = tokio::fs::create_dir_all(&("files/".to_string() + &organization.name + "/" + &bucket.name)).await;
 
     Ok(bucket)
 }

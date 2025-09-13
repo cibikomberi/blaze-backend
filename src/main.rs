@@ -14,14 +14,14 @@ mod config;
 use crate::auth::auth_handler::auth_routes;
 use crate::auth::auth_middleware::jwt_auth;
 use crate::bucket::bucket_handler::bucket_routes;
-use crate::file::file_handler::{file_routes, serve_files};
+use crate::file::file_handler::{file_routes, fs_routes};
 use crate::folder::folder_handler::folder_routes;
-use crate::organization::organization_handler::organization_routes;
+use crate::organization::organization_handler::{organization_routes, sdk_routes};
 use crate::user::user_handler::user_routes;
 use actix_files as fs;
 use actix_web::dev::ServiceResponse;
 use actix_web::http::{header, StatusCode};
-use actix_web::middleware::{from_fn, ErrorHandlerResponse, ErrorHandlers, Logger};
+use actix_web::middleware::{from_fn, Compress, ErrorHandlerResponse, ErrorHandlers, Logger};
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use config::db_config;
 use env_logger::{init_from_env, Env};
@@ -35,7 +35,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())
-            .service(web::scope("/f").service(serve_files))
+            .wrap(Compress::default())
+            .service(web::scope("/f").configure(fs_routes))
             .service(web::scope("/api")
                 .service(web::scope("/user").configure(user_routes))
                 .service(web::scope("/auth").configure(auth_routes))
@@ -43,6 +44,7 @@ async fn main() -> std::io::Result<()> {
                 .service(web::scope("/bucket").wrap(from_fn(jwt_auth)).configure(bucket_routes))
                 .service(web::scope("/folder").wrap(from_fn(jwt_auth)).configure(folder_routes))
                 .service(web::scope("/file").wrap(from_fn(jwt_auth)).configure(file_routes)))
+            .service(web::scope("/sdk").configure(sdk_routes))
             .service(fs::Files::new("/", "./static").index_file("index.html"))
             .wrap(ErrorHandlers::new().handler(StatusCode::INTERNAL_SERVER_ERROR, add_error_header))
             .default_service(web::route().to(index))

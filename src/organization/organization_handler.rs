@@ -2,7 +2,7 @@ use actix_web::{delete, get, post, put, web::{Json, Query, ServiceConfig}, HttpM
 use actix_web::web::Path;
 use uuid::Uuid;
 use crate::{error::ApiResponse, organization::{organization_dto::{CreateOrganizationDTO, SearchDto}, organization_service}, user::user_model::User};
-use crate::organization::organization_dto::{AddUserDTO, DeleteSecretDto, DeleteUserDTO, OrganizationIdDto, OrganizationUserRoleDto, PaginatedSecretSearchDto};
+use crate::organization::organization_dto::{AddUserDTO, DeleteSecretDto, DeleteUserDTO, OrganizationIdDto, OrganizationUserRoleDto, PaginatedSecretSearchDto, SignatureDto};
 use crate::organization::organization_model::{Organization, OrganizationSecret};
 
 #[post[""]]
@@ -94,6 +94,13 @@ async fn delete_organization_secret(dto: Json<DeleteSecretDto>, request: HttpReq
     Ok(())
 }
 
+#[get("")]
+async fn get_organization_from_secret(dto: Query<SignatureDto>) -> Result<Json<Organization>, ApiResponse> {
+    let SignatureDto { id, signature } = dto.into_inner();
+    let organization = organization_service::get_organization_from_secret(id, signature).await?;
+    Ok(Json(organization))
+}
+
 pub fn organization_routes(cfg: &mut ServiceConfig) {
     cfg.service(create);
     cfg.service(get_organization_secret);
@@ -105,4 +112,8 @@ pub fn organization_routes(cfg: &mut ServiceConfig) {
     cfg.service(delete_user);
     cfg.service(create_organization_secret);
     cfg.service(delete_organization_secret);
+}
+
+pub fn sdk_routes(cfg: &mut ServiceConfig) {
+    cfg.service(get_organization_from_secret);
 }

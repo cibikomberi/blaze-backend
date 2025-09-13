@@ -2,7 +2,7 @@ use crate::bucket::bucket_model::Bucket;
 use crate::config::db_config;
 use crate::error::ApiResponse;
 use crate::folder::folder_dto::Entry;
-use crate::folder::folder_model::Folder;
+use crate::folder::folder_model::{Folder, FolderId};
 use crate::organization::organization_model::{Organization, OrganizationRole, UserOrganization};
 use crate::organization::organization_service;
 use crate::schema::folders;
@@ -71,11 +71,21 @@ pub async fn folder_path(folder_id: Uuid, conn: &mut AsyncPgConnection) -> Resul
         .load(conn)
         .await
         .ok().unwrap();
-    error!("{:?}", results);
 
     let mut path = "/".to_string();
     results.into_iter().rev().for_each(|folder| path.push_str(&(folder.name + "/")));
     Ok(path)
+}
+
+pub async fn create_folder_from_path(path: &str, bucket_id: Uuid, created_by: Uuid, conn: &mut AsyncPgConnection) -> Result<Uuid, ApiResponse> {
+    let query = r#"SELECT create_folders_for_path($1, $2, $3) as id;"#;
+    let folder: FolderId = diesel::sql_query(query)
+        .bind::<diesel::sql_types::Uuid, _>(bucket_id)
+        .bind::<Text, _>(path)
+        .bind::<diesel::sql_types::Uuid, _>(created_by)
+        .get_result(conn)
+        .await?;
+    Ok(folder.id)
 }
 
 pub async fn find(bucket_id: Uuid, folder_id: Option<Uuid>,keyword: Option<String>, limit: i64, cursor: Option<Uuid>, cursor_kind: String, user: &User) -> Result<(Folder, Vec<Entry>), ApiResponse> {
@@ -105,7 +115,6 @@ pub async fn find(bucket_id: Uuid, folder_id: Option<Uuid>,keyword: Option<Strin
     let keyword_pattern = format!("%{}%", keyword.unwrap_or_default());
 
     let cursor_id = cursor.unwrap_or(Uuid::nil());
-    error!("{:?}", cursor_id);
     let folder_cursor_condition = if cursor_kind == "folder" { format!("AND public.folders.id < '{cursor_id}'") } else if cursor_kind == "file" { "AND FALSE".to_string() } else { "".to_string() };
     let file_cursor_condition = if cursor_kind == "file" { format!("AND public.files.id < '{cursor_id}'") } else { "".to_string() };
 let query = format!(r#"

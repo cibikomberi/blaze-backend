@@ -16,3 +16,9 @@ CREATE UNIQUE INDEX unique_root_folder_per_bucket ON folders(bucket_id) WHERE pa
 ALTER TABLE folders ADD FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE;
 ALTER TABLE folders ADD FOREIGN KEY (bucket_id) REFERENCES buckets(id);
 ALTER TABLE folders ADD FOREIGN KEY (created_by) REFERENCES users(id);
+
+CREATE UNIQUE INDEX unique_root_folder_per_bucket
+    ON folders(bucket_id) WHERE parent_id IS NULL;
+
+CREATE UNIQUE INDEX unique_folder_name_per_parent
+    ON folders(bucket_id, parent_id, name);

@@ -25,3 +25,10 @@ pub struct FileDto {
     pub bucket_name: String,
     pub file_path: String,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct FileQueryDto {
+    pub expiry: Option<u64>,
+    pub secret_id: String,
+    pub signature: String,
+}

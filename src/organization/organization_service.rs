@@ -2,6 +2,8 @@ use actix_web::http::StatusCode;
 use chrono::NaiveDateTime;
 use diesel::{alias, dsl, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, PgTextExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 use uuid::Uuid;
 
 use crate::{
@@ -142,8 +144,6 @@ pub async fn add_user(user_id: Uuid, organization_id: Uuid, role: OrganizationRo
         .left_join(user_organizations::table.on(user_organizations::user_id.eq(users::id).and(user_organizations::organization_id.eq(organization_id))))
         .select((User::as_select(), Option::<UserOrganization>::as_select()))
         .get_result::<(User, Option<UserOrganization>)>(&mut conn).await?;
-        // .get_result::<User>(&mut conn).await?;
-        error!("here1");
 
     if user_org.is_some() {
         return Err(ApiResponse::new(StatusCode::FORBIDDEN, "User is already part of the organization".to_string()));
@@ -273,8 +273,20 @@ pub async fn delete_organization_secret(id: String, organization_id: Uuid, user:
     Ok(())
 }
 
+pub async fn get_organization_from_secret(id: String, signature: String) -> Result<Organization, ApiResponse> {
+    let mut conn = db_config::get_connection().await?;
+    let (org_secret, organization) = organization_secrets::table.find(&id)
+        .inner_join(organizations::table)
+        .select((OrganizationSecret::as_select(), Organization::as_select()))
+        .get_result::<(OrganizationSecret, Organization)>(&mut conn)
+        .await?;
+
+    let payload = format!("id={id}");
+    verify_signature(&payload, &signature, &org_secret.secret)?;
+    Ok(organization)
+}
+
 pub async fn validate_access(organization_id: Uuid, user_id: Uuid, conn: &mut AsyncPgConnection) -> Result<(Organization, Option<UserOrganization>), ApiResponse> {
-    // let mut conn = db_config::get_connection().await?;
     let (org, user_organization) = organizations::table
         .filter(organizations::id.eq(organization_id))
         .left_join(user_organizations::table)
@@ -287,4 +299,17 @@ pub async fn validate_access(organization_id: Uuid, user_id: Uuid, conn: &mut As
         return Err(ApiResponse::new(StatusCode::FORBIDDEN, "User is not a part of this organization".to_string()));
     }
     Ok((org, user_organization))
+}
+
+fn verify_signature(payload: &str, signature: &str, secret: &str) -> Result<(), ApiResponse> {
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).unwrap();
+    mac.update(payload.as_bytes());
+    let fin = mac.finalize().into_bytes();
+
+    let hex_str = hex::encode(fin);
+    if  hex_str != signature {
+        return Err(ApiResponse::new(StatusCode::FORBIDDEN, "Secret not matched".to_string()))
+    }
+
+    Ok(())
 }

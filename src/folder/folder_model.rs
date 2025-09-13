@@ -36,3 +36,9 @@ impl Folder {
         }
     }
 }
+
+#[derive(QueryableByName)]
+pub struct FolderId {
+    #[sql_type = "diesel::sql_types::Uuid"]
+    pub id: Uuid,
+}

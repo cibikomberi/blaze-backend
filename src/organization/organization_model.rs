@@ -41,7 +41,7 @@ pub enum OrganizationRole {
     VIEWER
 }
 
-#[derive(Insertable, Queryable, Serialize, Debug)]
+#[derive(Selectable, Insertable, Queryable, Serialize, Debug)]
 #[diesel(table_name = organization_secrets)]
 pub struct OrganizationSecret {
     pub id: String,
