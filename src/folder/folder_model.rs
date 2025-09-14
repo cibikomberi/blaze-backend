@@ -39,12 +39,12 @@ impl Folder {
 
 #[derive(QueryableByName)]
 pub struct FolderId {
-    #[sql_type = "diesel::sql_types::Uuid"]
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub id: Uuid,
 }
 
 #[derive(QueryableByName, FromSqlRow)]
 pub struct OptionFolderId {
-    #[sql_type = "diesel::sql_types::Uuid"]
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub id: Option<Uuid>,
 }

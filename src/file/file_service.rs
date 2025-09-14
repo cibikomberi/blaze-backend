@@ -213,7 +213,7 @@ pub async fn remove_file(organization_name: String, bucket_name: String, file_pa
         .execute(&mut conn)
         .await
         .map_err(|_| ApiResponse::new(StatusCode::INTERNAL_SERVER_ERROR, "Cannot delete file".to_string()))?;
-    if (file < 1) {
+    if file < 1 {
         return Err(ApiResponse::new(StatusCode::INTERNAL_SERVER_ERROR, "Cannot delete file".to_string()));
     }
     let actual_file_path = format!("files/{}/{}/{}", organization_name, bucket_name, file_path);

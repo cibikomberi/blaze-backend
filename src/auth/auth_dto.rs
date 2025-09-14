@@ -41,12 +41,12 @@ pub struct GithubOauthResponse {
 
 #[derive(Deserialize)]
 pub struct GoogleUser {
-    pub id: String,
+    // pub id: String,
     pub email: String,
-    pub verified_email: bool,
+    // pub verified_email: bool,
     pub name: String,
-    pub given_name: String,
-    pub family_name: String,
+    // pub given_name: String,
+    // pub family_name: String,
     pub picture: String,
 }
 
@@ -55,5 +55,5 @@ pub struct GithubUser {
     pub name: String,
     pub email: String,
     pub avatar_url: String,
-    pub url: String,
+    // pub url: String,
 }
