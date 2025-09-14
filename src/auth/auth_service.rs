@@ -10,9 +10,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lazy_static::lazy_static;
 use reqwest::header::USER_AGENT;
-use serde::Deserialize;
 use uuid::Uuid;
-use crate::auth::auth_dto::{GithubOauthResponse, GithubUser, GoogleOauthResponse, GoogleUser};
+use crate::auth::auth_dto::{GithubOauthResponse, GithubUser, GoogleUser};
 use crate::schema::user_session;
 
 lazy_static! {
@@ -75,7 +74,6 @@ pub async fn google_oauth(code: String) -> Result<(String, String), ApiResponse>
         .multipart(form)
         .header(reqwest::header::CONTENT_TYPE, "application/x-www-form-urlencoded")
         .send().await.unwrap()
-        // .json::<GoogleOauthResponse>().await.unwrap();
         .text().await.unwrap();
     let res: GithubOauthResponse = serde_json::from_str(&res).unwrap();
 
