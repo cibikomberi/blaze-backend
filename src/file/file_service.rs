@@ -190,6 +190,37 @@ pub async fn save_file(body: Bytes, organization_name: String, bucket_name: Stri
     Ok(())
 }
 
+pub async fn remove_file(organization_name: String, bucket_name: String, file_path: String, query: FileQueryDto) -> Result<(), ApiResponse> {
+    let mut conn = db_config::get_connection().await?;
+    let (organization, bucket) = find_organization_and_bucket(&organization_name, &bucket_name, &mut conn).await?;
+    let path = organization_name.to_string() + "/" + &bucket_name + "/" + &file_path;
+    let _org_sec = verify_signature(&path, query, organization, true, &mut conn).await?;
+
+    let path = Path::new(&file_path);
+
+    let parent = path.parent().map(|p| p.to_str().unwrap()).unwrap_or("");
+    let folder: Option<Uuid> = folder_service::get_folder_from_path(parent, bucket, &mut conn).await?;
+
+    let folder = match folder {
+        Some(folder_id) => folder_id,
+        None => return Err(ApiResponse::new(StatusCode::FORBIDDEN, "Folder not found".to_string()))
+    };
+
+    let file = path.file_name().map(|f| f.to_str().unwrap()).unwrap_or("");
+    let file = diesel::delete(files::table)
+        .filter(files::folder_id.eq(folder))
+        .filter(files::name.eq(file))
+        .execute(&mut conn)
+        .await
+        .map_err(|_| ApiResponse::new(StatusCode::INTERNAL_SERVER_ERROR, "Cannot delete file".to_string()))?;
+    if (file < 1) {
+        return Err(ApiResponse::new(StatusCode::INTERNAL_SERVER_ERROR, "Cannot delete file".to_string()));
+    }
+    let actual_file_path = format!("files/{}/{}/{}", organization_name, bucket_name, file_path);
+    let _ = tokio::fs::remove_file(actual_file_path).await;
+    Ok(())
+}
+
 async fn find_organization_and_bucket(organization_name: &str, bucket_name: &str, conn: &mut AsyncPgConnection) -> Result<(Organization, Bucket), ApiResponse> {
     let (org, bucket) = organizations::table
         .left_join(buckets::table.on(buckets::organization_id.eq(organizations::id)))
@@ -203,6 +234,7 @@ async fn find_organization_and_bucket(organization_name: &str, bucket_name: &str
     }
     Ok((org.unwrap(), bucket.unwrap()))
 }
+
 
 async fn verify_signature(path: &str, query: FileQueryDto, org: Organization, is_upload: bool, conn: &mut AsyncPgConnection) -> Result<OrganizationSecret, ApiResponse> {
     let FileQueryDto { expiry, secret_id, signature} = query;

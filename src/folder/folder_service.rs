@@ -88,6 +88,20 @@ pub async fn create_folder_from_path(path: &str, bucket_id: Uuid, created_by: Uu
     Ok(folder.id)
 }
 
+pub async fn get_folder_from_path(path: &str, bucket: Bucket, conn: &mut AsyncPgConnection) -> Result<Option<Uuid>, ApiResponse> {
+    let query = r#"SELECT folder_exists_for_path($1, $2) as id;"#;
+    let folder: Option<FolderId> = sql_query(query)
+        .bind::<diesel::sql_types::Uuid, _>(bucket.id)
+        .bind::<Text, _>(path)
+        .get_result::<Option<FolderId>>(conn)
+        .await?;
+
+    match folder {
+        Some(folder) => Ok(Some(folder.id)),
+        None => Ok(None),
+    }
+}
+
 pub async fn find(bucket_id: Uuid, folder_id: Option<Uuid>,keyword: Option<String>, limit: i64, cursor: Option<Uuid>, cursor_kind: String, user: &User) -> Result<(Folder, Vec<Entry>), ApiResponse> {
     let mut conn = db_config::get_connection().await?;
     let (_, user_org) = buckets::dsl::buckets.find(bucket_id)

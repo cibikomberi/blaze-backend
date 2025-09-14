@@ -56,6 +56,12 @@ pub async fn save_file(bytes: Bytes, dto: Path<FileDto>, query: Query<FileQueryD
     file_service::save_file(bytes, organization_name, bucket_name, file_path, query.into_inner()).await
 }
 
+#[delete("{organization_name}/{bucket_name}/{file_path:.*}")]
+pub async fn remove_file(dto: Path<FileDto>, query: Query<FileQueryDto>) -> Result<(), ApiResponse> {
+    let FileDto { organization_name, bucket_name, file_path } = dto.into_inner();
+    file_service::remove_file(organization_name, bucket_name, file_path, query.into_inner()).await
+}
+
 pub fn file_routes(cfg: &mut ServiceConfig) {
     cfg.app_data(PayloadConfig::new(1 * 1024 * 1024 * 1024)).service(upload);
     cfg.service(search_file);
@@ -65,5 +71,6 @@ pub fn file_routes(cfg: &mut ServiceConfig) {
 
 pub fn fs_routes(cfg: &mut ServiceConfig) {
     cfg.service(serve_file);
+    cfg.service(remove_file);
     cfg.app_data(PayloadConfig::new(1 * 1024 * 1024 * 1024)).service(save_file);
 }

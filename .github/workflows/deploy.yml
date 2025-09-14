@@ -1,42 +1,46 @@
 name: Build
 
 on:
-  push:
-    branches: [ "main" ]
+    push:
+        branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    environment: production
+    build:
+        runs-on: ubuntu-latest
+        environment: production
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: build and create docker image
-        run: sudo docker build . -t blaze:latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: build and create docker image
+              run: sudo docker build . -t blaze:latest
 
-      - name: Save Docker image
-        run: docker save blaze:latest -o blaze.tar
+            - name: Save Docker image
+              run: docker save blaze:latest -o blaze.tar
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+            - name: Setup SSH
+              uses: webfactory/ssh-agent@v0.9.0
+              with:
+                  ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Copy to server
-        run: |
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./blaze.tar ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
+            - name: Copy to server
+              run: |
+                  rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./blaze.tar ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
-      - name: Copy docker-compose file to server
-        run: |
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./docker-compose.yaml ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
+            - name: Copy docker-compose file to server
+              run: |
+                  rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./docker-compose.yaml ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
-      - name: Copy .env file to server
-        run: |
-          cat << 'EOF' > .env
-          ${{ secrets.ENV_FILE }}
-          EOF
-          
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./.env ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
+            - name: Copy .env file to server
+              run: |
+                  cat << 'EOF' > .env
+                  ${{ secrets.ENV_FILE }}
+                  EOF
+                  
+                  rsync -avz -e "ssh -o StrictHostKeyChecking=no" --delete ./.env ${{ secrets.SERVER }}:${{ secrets.SERVER_PATH }}/
 
-      - name: Load image on server
-        run: ssh ${{ secrets.SERVER }} " sudo docker compose -f ${{ secrets.SERVER_PATH }}/docker-compose.yaml down && sudo docker image rm blaze:latest || true && sudo docker load -i ${{ secrets.SERVER_PATH }}/blaze.tar && sudo docker compose -f ${{ secrets.SERVER_PATH }}/docker-compose.yaml up -d"
+            - name: Load image on server
+              run: |
+                  ssh ${{ secrets.SERVER }} " sudo docker compose -f ${{ secrets.SERVER_PATH }}/docker-compose.yaml down && 
+                    sudo docker image rm blaze:latest || true && 
+                  sudo docker load -i ${{ secrets.SERVER_PATH }}/blaze.tar && 
+                  sudo docker compose -f ${{ secrets.SERVER_PATH }}/docker-compose.yaml up -d"

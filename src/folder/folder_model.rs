@@ -3,7 +3,7 @@ use crate::schema::folders;
 use crate::user::user_model::User;
 use chrono::{NaiveDateTime, Utc};
 use diesel::prelude::QueryableByName;
-use diesel::{Associations, Insertable, Queryable, Selectable};
+use diesel::{Associations, FromSqlRow, Insertable, Queryable, Selectable};
 use serde::Serialize;
 use uuid::Uuid;
 // use diesel::alias;
@@ -41,4 +41,10 @@ impl Folder {
 pub struct FolderId {
     #[sql_type = "diesel::sql_types::Uuid"]
     pub id: Uuid,
+}
+
+#[derive(QueryableByName, FromSqlRow)]
+pub struct OptionFolderId {
+    #[sql_type = "diesel::sql_types::Uuid"]
+    pub id: Option<Uuid>,
 }
