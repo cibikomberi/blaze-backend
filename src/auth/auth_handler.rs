@@ -1,15 +1,14 @@
-use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use crate::auth::auth_dto::{CodeDto, LoginDto, TokenDto};
+use crate::auth::auth_middleware::jwt_auth;
+use crate::auth::auth_service;
+use crate::error::ApiResponse;
+use crate::user::user_model::User;
 use actix_web::cookie::{Cookie, SameSite};
 use actix_web::http::header::LOCATION;
 use actix_web::http::StatusCode;
 use actix_web::middleware::from_fn;
 use actix_web::web::{Json, Query, Redirect, ServiceConfig};
-use reqwest::header::USER_AGENT;
-use crate::auth::auth_dto::{CodeDto, GithubOauthResponse, GoogleOauthResponse, LoginDto, TokenDto};
-use crate::auth::auth_middleware::jwt_auth;
-use crate::auth::auth_service;
-use crate::error::ApiResponse;
-use crate::user::user_model::User;
+use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 
 #[post("login")]
 async fn login(dto: Json<LoginDto>) -> HttpResponse {

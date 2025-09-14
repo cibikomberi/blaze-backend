@@ -18,7 +18,7 @@ use crate::schema::user_session;
 lazy_static! {
     static ref GOOGLE_CLIENT_ID: String = std::env::var("GOOGLE_OAUTH_CLIENT_ID").unwrap().to_string();
     static ref GOOGLE_CLIENT_SECRET: String = std::env::var("GOOGLE_OAUTH_CLIENT_SECRET").unwrap().to_string();
-    static ref GOOGLE_REDIRECT_URI: String = "http://localhost:8080/oauth/google/callback".to_string();
+    static ref GOOGLE_REDIRECT_URI: String = std::env::var("GOOGLE_REDIRECT_URI").unwrap().to_string();
     static ref GOOGLE_SCOPE: String = "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile".to_string();
     static ref GOOGLE_AUTH_ENDPOINT: String = "https://accounts.google.com/o/oauth2/v2/auth".to_string();
 
