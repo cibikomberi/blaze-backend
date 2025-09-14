@@ -11,21 +11,23 @@ pub struct User {
     pub name: String,
     pub email: String,
     pub username: String,
-    pub password: String,
+    pub password: Option<String>,
     pub is_verified: bool,
 
     pub created_at: NaiveDateTime,
     pub updated_at: Option<NaiveDateTime>,
+    pub image: Option<String>,
 }
 
 impl User {
-    pub fn new(name: String, username: String, email: String, password: String) -> User {
+    pub fn new(name: String, username: String, email: String, password: Option<String>, image: Option<String>) -> User {
         User {
             id: Uuid::now_v7(),
             name,
             email,
             username,
             password,
+            image,
             is_verified: false,
             created_at:  Utc::now().naive_utc(),
             updated_at: None,

@@ -11,7 +11,7 @@ pub mod folder;
 mod file;
 mod config;
 
-use crate::auth::auth_handler::auth_routes;
+use crate::auth::auth_handler::{auth_routes, github_callback, google_callback};
 use crate::auth::auth_middleware::jwt_auth;
 use crate::bucket::bucket_handler::bucket_routes;
 use crate::file::file_handler::{file_routes, fs_routes};
@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Logger::default())
             .wrap(Compress::default())
+            .service(web::scope("/oauth").service(google_callback).service(github_callback))
             .service(web::scope("/f").configure(fs_routes))
             .service(web::scope("/api")
                 .service(web::scope("/user").configure(user_routes))

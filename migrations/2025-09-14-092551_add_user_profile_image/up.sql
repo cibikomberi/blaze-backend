@@ -1,0 +1,3 @@
+-- Your SQL goes here
+ALTER TABLE users ADD COLUMN image VARCHAR(511) DEFAULT null;
+ALTER TABLE users ALTER COLUMN password DROP NOT NULL;

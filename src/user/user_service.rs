@@ -18,7 +18,7 @@ pub async fn register_user(name: String, email: String, username: String, raw_pa
     // let mut conn = db_config::connection().await?;
 
     Ok(diesel::insert_into(users)
-        .values(User::new(name, username, email, password))
+        .values(User::new(name, username, email, Some(password), None))
         .get_result::<User>(&mut conn).await
         .map_err(|_| ApiResponse::new(StatusCode::CONFLICT, "frokpskf".to_string()))?)
 }

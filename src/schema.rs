@@ -107,10 +107,12 @@ diesel::table! {
         #[max_length = 255]
         username -> Varchar,
         #[max_length = 255]
-        password -> Varchar,
+        password -> Nullable<Varchar>,
         is_verified -> Bool,
         created_at -> Timestamp,
         updated_at -> Nullable<Timestamp>,
+        #[max_length = 511]
+        image -> Nullable<Varchar>,
     }
 }
 

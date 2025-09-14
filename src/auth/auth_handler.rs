@@ -1,9 +1,11 @@
 use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use actix_web::cookie::{Cookie, SameSite};
+use actix_web::http::header::LOCATION;
 use actix_web::http::StatusCode;
 use actix_web::middleware::from_fn;
-use actix_web::web::{Json, ServiceConfig};
-use crate::auth::auth_dto::{LoginDto, TokenDto};
+use actix_web::web::{Json, Query, Redirect, ServiceConfig};
+use reqwest::header::USER_AGENT;
+use crate::auth::auth_dto::{CodeDto, GithubOauthResponse, GoogleOauthResponse, LoginDto, TokenDto};
 use crate::auth::auth_middleware::jwt_auth;
 use crate::auth::auth_service;
 use crate::error::ApiResponse;
@@ -43,6 +45,48 @@ async fn refresh_token(request: HttpRequest) -> HttpResponse {
     }
 }
 
+#[get("google")]
+async fn google_auth() -> impl Responder {
+    Redirect::to(auth_service::google_redirect_url())
+}
+#[get("google/callback")]
+async fn google_callback(code: Query<CodeDto>) -> HttpResponse {
+    let CodeDto { code } = code.into_inner();
+    let (token, refresh_toke) = auth_service::google_oauth(code).await.unwrap();
+    let cookie = Cookie::build("refresh_token", refresh_toke)
+        .path("/api/auth/refresh_token")
+        .http_only(true)
+        .secure(true)
+        .same_site(SameSite::Strict)
+        .finish();
+    HttpResponse::TemporaryRedirect()
+        .append_header((LOCATION, format!("/auth/success?token={token}")))
+        .cookie(cookie)
+        .finish()
+}
+
+#[get("github")]
+async fn github_auth() -> impl Responder {
+    Redirect::to(auth_service::github_redirect_url())
+}
+
+
+#[get("github/callback")]
+async fn github_callback(code: Query<CodeDto>) -> HttpResponse {
+    let CodeDto { code } = code.into_inner();
+    let (token, refresh_toke) = auth_service::github_oauth(code).await.unwrap();
+    let cookie = Cookie::build("refresh_token", refresh_toke)
+        .path("/api/auth/refresh_token")
+        .http_only(true)
+        .secure(true)
+        .same_site(SameSite::Strict)
+        .finish();
+    HttpResponse::TemporaryRedirect()
+        .append_header((LOCATION, format!("/auth/success?token={token}")))
+        .cookie(cookie)
+        .finish()
+}
+
 #[get("me")]
 async fn who_am_i(request: HttpRequest) -> Result<impl Responder, ApiResponse> {
     if let Some(user) = request.extensions().get::<User>() {
@@ -54,6 +98,8 @@ async fn who_am_i(request: HttpRequest) -> Result<impl Responder, ApiResponse> {
 
 pub fn auth_routes(cfg: &mut ServiceConfig) {
     cfg.service(login);
+    cfg.service(google_auth);
+    cfg.service(github_auth);
     cfg.service(refresh_token);
 
     cfg.service(web::scope("")
